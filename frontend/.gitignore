@@ -2,3 +2,6 @@ node_modules
 .next
 .env*.local
 .DS_Store
+# This project installs with `npm install` (see Dockerfile) and does not
+# track a lockfile; ignore any locally generated one.
+package-lock.json
