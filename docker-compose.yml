@@ -1,0 +1,104 @@
+# Local full-stack orchestration for Revion.
+#
+# This mirrors the production topology (managed Postgres + optional Redis +
+# backend API + frontend) so what you run locally matches Render closely. The
+# backend is given an explicit DATABASE_URL here — the very same variable
+# Render injects — so the local run exercises the exact production code path
+# for database configuration.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: revion-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-revion_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-revion_password}
+      POSTGRES_DB: ${POSTGRES_DB:-revion}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-revion_user} -d ${POSTGRES_DB:-revion}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - revion-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: revion-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - revion-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: revion-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # Single DATABASE_URL, exactly like Render provides. Overrides any
+      # POSTGRES_* assembly in config.py.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-revion_user}:${POSTGRES_PASSWORD:-revion_password}@postgres:5432/${POSTGRES_DB:-revion}
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PORT: "8000"
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_storage:/app/storage
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - revion-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Next.js inlines NEXT_PUBLIC_* at BUILD time, so it must be a build
+        # arg, not just a runtime env var.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    container_name: revion-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - revion-network
+
+networks:
+  revion-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_storage:
