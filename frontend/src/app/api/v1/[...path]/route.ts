@@ -10,8 +10,13 @@ import { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// Defaults to the deployed backend so the app works with zero extra config.
+// Override with BACKEND_ORIGIN (e.g. http://localhost:8000 for local dev, or a
+// new backend URL) — read at request time, so a normal redeploy picks it up.
+const DEFAULT_BACKEND_ORIGIN = "https://rep02-4.onrender.com";
+
 function backendOrigin(): string {
-  return (process.env.BACKEND_ORIGIN || "http://localhost:8000").replace(/\/+$/, "");
+  return (process.env.BACKEND_ORIGIN || DEFAULT_BACKEND_ORIGIN).replace(/\/+$/, "");
 }
 
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
