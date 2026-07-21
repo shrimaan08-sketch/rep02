@@ -44,5 +44,16 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SignupRequest(BaseModel):
+    email: EmailStr
+    full_name: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=8)
+
+
+class GoogleAuthRequest(BaseModel):
+    # The Google ID token (a JWT) returned by Google Identity Services.
+    credential: str = Field(min_length=1)
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str

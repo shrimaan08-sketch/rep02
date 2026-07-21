@@ -7,13 +7,6 @@ import { useAuth } from "@/lib/auth";
 import { LogoMark } from "@/components/Logo";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 
-const LIFECYCLE = [
-  { code: "ECR", label: "Request raised", detail: "An engineer flags a needed change" },
-  { code: "REV", label: "Cross-functional review", detail: "Quality, manufacturing & procurement weigh in" },
-  { code: "ECO", label: "Change authorized", detail: "A signed approval chain releases the change" },
-  { code: "REL", label: "Released to production", detail: "Suppliers notified, revisions made effective" },
-];
-
 const HIGHLIGHTS = [
   { icon: ShieldCheck, label: "Signed, auditable approvals" },
   { icon: GitBranch, label: "Full revision history" },
@@ -21,9 +14,10 @@ const HIGHLIGHTS = [
   { icon: Bot, label: "AI-summarized change orders" },
 ];
 
-export default function LoginPage() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState("admin@revion.app");
+export default function SignupPage() {
+  const { signup } = useAuth();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -33,9 +27,9 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      await signup(email, fullName, password);
     } catch (err: any) {
-      setError(err.message || "Login failed.");
+      setError(err.message || "Sign-up failed.");
     } finally {
       setSubmitting(false);
     }
@@ -45,28 +39,27 @@ export default function LoginPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[1.15fr_1fr]">
       {/* Left: cinematic brand panel */}
       <div className="relative hidden overflow-hidden bg-ink-950 lg:flex lg:flex-col lg:justify-between">
-        {/* layered background */}
         <div className="absolute inset-0 bg-grid-blueprint [background-size:34px_34px]" />
         <div className="absolute -left-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-azure-600/20 blur-[120px]" />
         <div className="absolute -bottom-40 right-0 h-[26rem] w-[26rem] rounded-full bg-azure-400/10 blur-[130px]" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-transparent" />
 
         <div className="relative z-10 px-14 pt-14">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <LogoMark className="h-9 w-9" />
             <span className="font-display text-lg font-semibold tracking-tight text-white">Revion</span>
-          </div>
+          </Link>
 
           <h1 className="mt-20 max-w-lg font-display text-[2.6rem] font-semibold leading-[1.1] tracking-tight text-white">
-            The control center for{" "}
+            Start managing{" "}
             <span className="bg-gradient-to-r from-azure-300 to-azure-500 bg-clip-text text-transparent">
               engineering change
-            </span>
-            .
+            </span>{" "}
+            in minutes.
           </h1>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-300">
-            Parts, revisions, and bills of materials stay in lockstep with a signed, auditable
-            approval record for every change that reaches the shop floor.
+            Create your workspace and get a signed, auditable record for every change — from the
+            first request to release on the shop floor.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-2.5">
@@ -83,27 +76,16 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 border-t border-white/[0.07] px-14 py-9">
-          <p className="mb-5 font-mono text-2xs font-medium uppercase tracking-[0.2em] text-azure-300/70">
-            The change lifecycle
+          <p className="text-sm text-ink-300">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-azure-300 hover:text-azure-200">
+              Sign in
+            </Link>
           </p>
-          <div className="grid grid-cols-4 gap-3">
-            {LIFECYCLE.map((stage, i) => (
-              <div key={stage.code} className="relative">
-                {i < LIFECYCLE.length - 1 && (
-                  <span className="absolute right-[-8px] top-3.5 hidden h-px w-4 bg-gradient-to-r from-azure-400/40 to-transparent xl:block" />
-                )}
-                <span className="inline-flex items-center rounded-md2 border border-azure-300/25 bg-azure-500/[0.08] px-2 py-1 font-mono text-2xs font-semibold text-azure-200">
-                  {stage.code}
-                </span>
-                <p className="mt-2 text-xs font-medium text-white">{stage.label}</p>
-                <p className="mt-0.5 text-2xs leading-snug text-ink-400">{stage.detail}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Right: sign-in */}
+      {/* Right: sign-up */}
       <div className="flex items-center justify-center bg-canvas px-6 py-12">
         <div className="w-full max-w-[380px]">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
@@ -113,13 +95,23 @@ export default function LoginPage() {
 
           <div className="overflow-hidden rounded-xl2 border border-hairline bg-paper shadow-float">
             <div className="border-b border-hairline px-7 pb-5 pt-6">
-              <p className="font-mono text-2xs font-medium uppercase tracking-[0.18em] text-azure-600">Welcome back</p>
+              <p className="font-mono text-2xs font-medium uppercase tracking-[0.18em] text-azure-600">Get started</p>
               <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-ink-950">
-                Sign in to your workspace
+                Create your account
               </h2>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 px-7 py-6">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink-700">Full name</label>
+                <input
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-md2 border border-hairline-strong bg-paper px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-300 focus:border-azure-500 focus:ring-2 focus:ring-azure-500/20"
+                  placeholder="Ada Lovelace"
+                />
+              </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-ink-700">Work email</label>
                 <input
@@ -136,10 +128,11 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-md2 border border-hairline-strong bg-paper px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-300 focus:border-azure-500 focus:ring-2 focus:ring-azure-500/20"
-                  placeholder="••••••••"
+                  placeholder="At least 8 characters"
                 />
               </div>
 
@@ -154,26 +147,19 @@ export default function LoginPage() {
                 disabled={submitting}
                 className="group flex w-full items-center justify-center gap-2 rounded-md2 bg-azure-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-azure-700 hover:shadow-glow-azure active:scale-[0.99] disabled:opacity-50"
               >
-                {submitting ? "Signing in…" : "Sign in"}
+                {submitting ? "Creating account…" : "Create account"}
                 {!submitting && <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />}
               </button>
 
               <GoogleSignInButton onError={setError} />
             </form>
-
-            <div className="border-t border-hairline px-7 py-4">
-              <p className="text-center text-sm text-ink-500">
-                Don&apos;t have an account?{" "}
-                <Link href="/signup" className="font-medium text-azure-600 hover:text-azure-700">
-                  Sign up
-                </Link>
-              </p>
-            </div>
           </div>
 
-          <p className="mt-5 text-center text-2xs leading-relaxed text-ink-400">
-            Seeded admin account · <span className="font-mono text-ink-500">admin@revion.app</span> ·{" "}
-            <span className="font-mono text-ink-500">ChangeMe123!</span>
+          <p className="mt-5 text-center text-sm text-ink-500 lg:hidden">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-azure-600 hover:text-azure-700">
+              Sign in
+            </Link>
           </p>
         </div>
       </div>
