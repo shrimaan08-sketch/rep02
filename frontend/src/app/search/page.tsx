@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
@@ -13,7 +14,7 @@ interface SearchResults {
   ecos: { id: number; eco_number: string; title: string; status: string }[];
 }
 
-export default function SearchPage() {
+function SearchResultsView() {
   const params = useSearchParams();
   const q = params.get("q") || "";
   const { data, isLoading } = useApi<SearchResults>(q ? `/search?q=${encodeURIComponent(q)}` : null);
@@ -97,5 +98,13 @@ export default function SearchPage() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<AppShell><p className="text-sm text-ink-600">Loading search…</p></AppShell>}>
+      <SearchResultsView />
+    </Suspense>
   );
 }
