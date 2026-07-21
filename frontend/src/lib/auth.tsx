@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -36,13 +37,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  function persistSession(data: { access_token: string; refresh_token: string; user: User }) {
+    Cookies.set(ACCESS_TOKEN_COOKIE, data.access_token, { expires: 1 });
+    Cookies.set(REFRESH_TOKEN_COOKIE, data.refresh_token, { expires: 7 });
+    setUser(data.user);
+    router.push("/dashboard");
+  }
+
   async function login(email: string, password: string) {
     try {
       const { data } = await api.post("/auth/login", { email, password });
-      Cookies.set(ACCESS_TOKEN_COOKIE, data.access_token, { expires: 1 });
-      Cookies.set(REFRESH_TOKEN_COOKIE, data.refresh_token, { expires: 7 });
-      setUser(data.user);
-      router.push("/dashboard");
+      persistSession(data);
+    } catch (err) {
+      throw new Error(extractErrorMessage(err));
+    }
+  }
+
+  async function signup(email: string, password: string) {
+    try {
+      const { data } = await api.post("/auth/signup", { email, password });
+      persistSession(data);
     } catch (err) {
       throw new Error(extractErrorMessage(err));
     }
@@ -55,7 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

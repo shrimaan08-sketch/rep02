@@ -44,5 +44,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    full_name: str | None = None
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str

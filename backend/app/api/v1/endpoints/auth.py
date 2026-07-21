@@ -1,8 +1,10 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
 
+from app.core.config import settings
 from app.core.redis import incr_with_expiry
 from app.core.security import (
     create_access_token,
@@ -15,7 +17,14 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.user import User, UserRole
-from app.schemas.user import LoginRequest, RefreshRequest, Token, UserCreate, UserRead
+from app.schemas.user import (
+    LoginRequest,
+    RefreshRequest,
+    SignupRequest,
+    Token,
+    UserCreate,
+    UserRead,
+)
 from app.services import audit_service
 
 logger = logging.getLogger("eco_platform.auth")
@@ -24,6 +33,50 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 MAX_LOGIN_ATTEMPTS_PER_WINDOW = 10
 LOGIN_WINDOW_SECONDS = 300
+
+
+def _signup_role() -> UserRole:
+    """Resolve the configured default role for self-service sign-ups."""
+    try:
+        return UserRole(settings.SIGNUP_DEFAULT_ROLE)
+    except ValueError:
+        return UserRole.VIEWER
+
+
+def _tokens_for(user: User) -> Token:
+    return Token(
+        access_token=create_access_token(str(user.id), user.role.value),
+        refresh_token=create_refresh_token(str(user.id)),
+        user=UserRead.model_validate(user),
+    )
+
+
+@router.post("/signup", response_model=Token, status_code=status.HTTP_201_CREATED)
+async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
+    """Public email/password registration. Creates the account and immediately
+    returns tokens so the new user lands signed in."""
+    if not settings.SIGNUP_ENABLED:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Public sign-up is currently disabled.")
+
+    existing = await db.execute(select(User).where(User.email == payload.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
+
+    user = User(
+        email=payload.email,
+        full_name=payload.full_name or payload.email.split("@")[0],
+        hashed_password=hash_password(payload.password),
+        role=_signup_role(),
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    await audit_service.record(
+        db, actor=user, action="auth.signup", entity_type="User", entity_id=user.id,
+        after_state={"email": user.email, "role": user.role.value}, commit=True,
+    )
+    await db.refresh(user)
+    return _tokens_for(user)
 
 
 @router.post("/login", response_model=Token)

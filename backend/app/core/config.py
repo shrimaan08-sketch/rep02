@@ -177,6 +177,13 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     EMAIL_ENABLED: bool = False  # flip on once SMTP creds are configured
 
+    # --- Public sign-up ---
+    # Allow visitors to self-register with email + password.
+    SIGNUP_ENABLED: bool = True
+    # Role granted to self-service sign-ups. "admin" gives a new user the full
+    # workspace; set to "viewer"/"engineer" etc. to restrict what they can do.
+    SIGNUP_DEFAULT_ROLE: str = "admin"
+
     # --- AI (Anthropic) ---
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
