@@ -1,7 +1,12 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import Cookies from "js-cookie";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// Default to the frontend's OWN origin (/api/v1), which is proxied to the real
+// backend by the Next.js route handler at app/api/v1/[...path]. This means the
+// browser never makes a cross-origin call — no CORS, and no backend URL baked
+// into the client bundle. Set NEXT_PUBLIC_API_URL only if you want the browser
+// to call the backend directly instead of going through the proxy.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 export const ACCESS_TOKEN_COOKIE = "eco_access_token";

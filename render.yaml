@@ -85,12 +85,10 @@ services:
     dockerfilePath: ./Dockerfile
     autoDeploy: true
     envVars:
-      # BUILD-TIME variable: baked into the client bundle during docker build.
-      # Render's fromService exposes only the bare host (no scheme, no path),
-      # but this needs the full URL including /api/v1. Set it in the dashboard
-      # BEFORE the first frontend build (or redeploy after setting) to:
-      #   https://revion-api.onrender.com/api/v1   (your backend's actual URL)
-      - key: NEXT_PUBLIC_API_URL
+      # RUNTIME variable (the only one you need). The frontend proxies
+      # /api/v1/* to this backend, so the browser only ever calls the frontend
+      # itself — no CORS, and no rebuild required when you change it. Set it in
+      # the dashboard to your backend's base URL (NO /api/v1, NO trailing slash):
+      #   https://revion-api.onrender.com
+      - key: BACKEND_ORIGIN
         sync: false
-      - key: NEXT_PUBLIC_DEMO_MODE
-        value: "false"
