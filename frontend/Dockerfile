@@ -30,5 +30,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
+# Next.js standalone server binds to process.env.HOSTNAME (falling back to
+# 0.0.0.0). Docker/Render automatically set HOSTNAME to the container's id, so
+# without this the server binds to that hostname instead of all interfaces and
+# the platform's proxy can't reach it — every route returns 502. Pin it to
+# 0.0.0.0 so the server listens on all interfaces. Render still injects its own
+# PORT, which server.js honors.
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]
