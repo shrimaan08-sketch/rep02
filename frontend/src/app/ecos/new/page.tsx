@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import AppShell from "@/components/AppShell";
@@ -16,7 +16,7 @@ interface AffectedPartDraft {
   change_description: string;
 }
 
-export default function NewECOPage() {
+function NewECOForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sourceEcrId = searchParams.get("source_ecr_id");
@@ -229,5 +229,13 @@ export default function NewECOPage() {
         </form>
       </Panel>
     </AppShell>
+  );
+}
+
+export default function NewECOPage() {
+  return (
+    <Suspense fallback={<AppShell><p className="text-sm text-ink-600">Loading…</p></AppShell>}>
+      <NewECOForm />
+    </Suspense>
   );
 }
