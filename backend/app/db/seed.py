@@ -30,7 +30,11 @@ DEFAULT_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@revion.app")
 DEFAULT_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "ChangeMe123!")
 # Demo role accounts are only seeded when explicitly enabled; production
 # deployments typically want just the admin account.
-SEED_DEMO_ACCOUNTS = os.getenv("SEED_DEMO_ACCOUNTS", "true").lower() == "true"
+SEED_DEMO_ACCOUNTS = os.getenv("SEED_DEMO_ACCOUNTS", "false").lower() == "true"
+# Sample parts/BOMs/supplier are OFF by default so the app starts as a clean,
+# real workspace — only the admin account is created. Set SEED_DEMO_DATA=true
+# if you ever want the illustrative starter catalog back.
+SEED_DEMO_DATA = os.getenv("SEED_DEMO_DATA", "false").lower() == "true"
 
 # The part numbers created by seed_demo_domain_data(). Used as the idempotency
 # key: if any of these already exist we skip the whole demo-data insert. They
@@ -170,7 +174,10 @@ async def main() -> None:
     # the entrypoint via `alembic upgrade head`). This module only seeds data
     # into an already-migrated database, so it never calls create_all().
     await seed_admin_user()
-    await seed_demo_domain_data()
+    if SEED_DEMO_DATA:
+        await seed_demo_domain_data()
+    else:
+        logger.info("SEED_DEMO_DATA is false; starting with a clean workspace (admin only).")
 
 
 if __name__ == "__main__":
