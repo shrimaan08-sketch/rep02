@@ -13,10 +13,11 @@ Alembic migrations. Rather than force the operator to know that, we accept
 whatever ``DATABASE_URL`` is provided and derive both driver-specific URLs
 from it automatically (see ``async_database_url`` / ``sync_database_url``).
 """
+import json
 from functools import lru_cache
 from typing import List
 
-from pydantic import field_validator, model_validator
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -145,23 +146,27 @@ class Settings(BaseSettings):
     REDIS_URL: str | None = None
 
     # --- CORS ---
-    # Comma-separated list OR JSON array of allowed origins. In production
-    # this MUST include your deployed frontend URL, e.g.
-    # "https://revion-web.onrender.com".
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    # Allowed origins as a raw string: a single origin, a comma-separated list,
+    # OR a JSON array. In production this MUST include your deployed frontend
+    # URL, e.g. "https://revion-web.onrender.com".
+    #
+    # This is intentionally a plain ``str`` (not ``List[str]``). pydantic-settings
+    # auto-JSON-decodes complex-typed env vars *before* any validator runs, so a
+    # bare value like "https://app.onrender.com" would raise SettingsError at
+    # startup ("error parsing value for field BACKEND_CORS_ORIGINS"). Keeping it
+    # a string avoids that; ``cors_origins`` below parses it into the list the
+    # CORS middleware needs.
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    @classmethod
-    def _split_cors(cls, v):
-        if isinstance(v, str):
-            s = v.strip()
-            if not s:
-                return []
-            if s.startswith("["):
-                # Leave JSON-array form for pydantic's own JSON parsing.
-                return v
-            return [origin.strip() for origin in s.split(",") if origin.strip()]
-        return v
+    @property
+    def cors_origins(self) -> List[str]:
+        s = (self.BACKEND_CORS_ORIGINS or "").strip()
+        if not s:
+            return []
+        if s.startswith("["):
+            # Explicit JSON-array form, e.g. '["https://a.com","https://b.com"]'.
+            return [str(o).strip() for o in json.loads(s) if str(o).strip()]
+        return [origin.strip() for origin in s.split(",") if origin.strip()]
 
     # --- Email (SMTP) ---
     SMTP_HOST: str = ""
