@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck, GitBranch, Layers, Bot } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { LogoMark } from "@/components/Logo";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 const HIGHLIGHTS = [
   { icon: ShieldCheck, label: "Signed, auditable approvals" },
@@ -16,7 +15,6 @@ const HIGHLIGHTS = [
 
 export default function SignupPage() {
   const { signup } = useAuth();
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +25,7 @@ export default function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signup(email, fullName, password);
+      await signup(email, password);
     } catch (err: any) {
       setError(err.message || "Sign-up failed.");
     } finally {
@@ -45,10 +43,10 @@ export default function SignupPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-transparent" />
 
         <div className="relative z-10 px-14 pt-14">
-          <Link href="/" className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <LogoMark className="h-9 w-9" />
             <span className="font-display text-lg font-semibold tracking-tight text-white">Revion</span>
-          </Link>
+          </div>
 
           <h1 className="mt-20 max-w-lg font-display text-[2.6rem] font-semibold leading-[1.1] tracking-tight text-white">
             Start managing{" "}
@@ -103,17 +101,7 @@ export default function SignupPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4 px-7 py-6">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-ink-700">Full name</label>
-                <input
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-md2 border border-hairline-strong bg-paper px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-300 focus:border-azure-500 focus:ring-2 focus:ring-azure-500/20"
-                  placeholder="Ada Lovelace"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-ink-700">Work email</label>
+                <label className="mb-1.5 block text-xs font-medium text-ink-700">Email</label>
                 <input
                   type="email"
                   required
@@ -150,17 +138,17 @@ export default function SignupPage() {
                 {submitting ? "Creating account…" : "Create account"}
                 {!submitting && <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />}
               </button>
-
-              <GoogleSignInButton onError={setError} />
             </form>
-          </div>
 
-          <p className="mt-5 text-center text-sm text-ink-500 lg:hidden">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-azure-600 hover:text-azure-700">
-              Sign in
-            </Link>
-          </p>
+            <div className="border-t border-hairline px-7 py-4">
+              <p className="text-center text-sm text-ink-500">
+                Already have an account?{" "}
+                <Link href="/login" className="font-medium text-azure-600 hover:text-azure-700">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

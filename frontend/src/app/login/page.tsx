@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck, GitBranch, Layers, Bot } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { LogoMark } from "@/components/Logo";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 const LIFECYCLE = [
   { code: "ECR", label: "Request raised", detail: "An engineer flags a needed change" },
@@ -157,8 +156,6 @@ export default function LoginPage() {
                 {submitting ? "Signing in…" : "Sign in"}
                 {!submitting && <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />}
               </button>
-
-              <GoogleSignInButton onError={setError} />
             </form>
 
             <div className="border-t border-hairline px-7 py-4">

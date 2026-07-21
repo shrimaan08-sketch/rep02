@@ -1,7 +1,5 @@
 import logging
-import secrets
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +18,6 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import (
-    GoogleAuthRequest,
     LoginRequest,
     RefreshRequest,
     SignupRequest,
@@ -36,8 +33,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 MAX_LOGIN_ATTEMPTS_PER_WINDOW = 10
 LOGIN_WINDOW_SECONDS = 300
-
-GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 
 
 def _signup_role() -> UserRole:
@@ -56,19 +51,9 @@ def _tokens_for(user: User) -> Token:
     )
 
 
-@router.get("/config")
-async def auth_config():
-    """Public auth capabilities, so the frontend can render the right buttons
-    at runtime without a rebuild."""
-    return {
-        "signupEnabled": settings.SIGNUP_ENABLED,
-        "googleClientId": settings.GOOGLE_CLIENT_ID or None,
-    }
-
-
 @router.post("/signup", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
-    """Public self-service registration. Creates the account and immediately
+    """Public email/password registration. Creates the account and immediately
     returns tokens so the new user lands signed in."""
     if not settings.SIGNUP_ENABLED:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Public sign-up is currently disabled.")
@@ -79,7 +64,7 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
 
     user = User(
         email=payload.email,
-        full_name=payload.full_name,
+        full_name=payload.full_name or payload.email.split("@")[0],
         hashed_password=hash_password(payload.password),
         role=_signup_role(),
         is_active=True,
@@ -91,58 +76,6 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
         after_state={"email": user.email, "role": user.role.value}, commit=True,
     )
     await db.refresh(user)
-    return _tokens_for(user)
-
-
-@router.post("/google", response_model=Token)
-async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
-    """Sign in / sign up with a Google ID token. Verifies the token with
-    Google, then finds or creates the matching user."""
-    if not settings.google_enabled:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google sign-in is not configured.")
-
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(GOOGLE_TOKENINFO_URL, params={"id_token": payload.credential})
-    except httpx.HTTPError:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not reach Google to verify the sign-in.")
-
-    if resp.status_code != 200:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid Google credential.")
-    info = resp.json()
-
-    # The token must have been issued for THIS app's client id.
-    if info.get("aud") != settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google credential was issued for a different app.")
-    if str(info.get("email_verified")).lower() != "true":
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your Google email is not verified.")
-    email = info.get("email")
-    if not email:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google did not return an email address.")
-
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
-    if user is None:
-        user = User(
-            email=email,
-            full_name=info.get("name") or email.split("@")[0],
-            # No usable password: Google is the sole credential. A random
-            # unguessable value keeps the column non-null and the account
-            # unusable via password login.
-            hashed_password=hash_password(secrets.token_urlsafe(32)),
-            role=_signup_role(),
-            is_active=True,
-        )
-        db.add(user)
-        await db.flush()
-        await audit_service.record(
-            db, actor=user, action="auth.google_signup", entity_type="User", entity_id=user.id,
-            after_state={"email": email, "role": user.role.value}, commit=True,
-        )
-        await db.refresh(user)
-    elif not user.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This account has been deactivated.")
-
     return _tokens_for(user)
 
 

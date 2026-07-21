@@ -10,8 +10,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, fullName: string, password: string) => Promise<void>;
-  loginWithGoogle: (credential: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -54,18 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function signup(email: string, fullName: string, password: string) {
+  async function signup(email: string, password: string) {
     try {
-      const { data } = await api.post("/auth/signup", { email, full_name: fullName, password });
-      persistSession(data);
-    } catch (err) {
-      throw new Error(extractErrorMessage(err));
-    }
-  }
-
-  async function loginWithGoogle(credential: string) {
-    try {
-      const { data } = await api.post("/auth/google", { credential });
+      const { data } = await api.post("/auth/signup", { email, password });
       persistSession(data);
     } catch (err) {
       throw new Error(extractErrorMessage(err));
@@ -80,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

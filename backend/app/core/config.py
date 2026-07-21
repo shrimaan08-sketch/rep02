@@ -177,20 +177,12 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     EMAIL_ENABLED: bool = False  # flip on once SMTP creds are configured
 
-    # --- Public sign-up & OAuth ---
-    # Allow visitors to self-register an account from the marketing site.
+    # --- Public sign-up ---
+    # Allow visitors to self-register with email + password.
     SIGNUP_ENABLED: bool = True
     # Role granted to self-service sign-ups. "admin" gives a new user the full
-    # workspace (the SaaS "your workspace" model); set to "viewer"/"engineer"
-    # etc. to restrict what new sign-ups can do.
+    # workspace; set to "viewer"/"engineer" etc. to restrict what they can do.
     SIGNUP_DEFAULT_ROLE: str = "admin"
-    # Set to your Google OAuth Web client ID to enable "Sign in with Google".
-    # When empty, the Google button is hidden and /auth/google returns 400.
-    GOOGLE_CLIENT_ID: str = ""
-
-    @property
-    def google_enabled(self) -> bool:
-        return bool(self.GOOGLE_CLIENT_ID)
 
     # --- AI (Anthropic) ---
     ANTHROPIC_API_KEY: str = ""
