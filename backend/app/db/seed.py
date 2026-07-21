@@ -32,6 +32,12 @@ DEFAULT_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "ChangeMe123!")
 # deployments typically want just the admin account.
 SEED_DEMO_ACCOUNTS = os.getenv("SEED_DEMO_ACCOUNTS", "true").lower() == "true"
 
+# The part numbers created by seed_demo_domain_data(). Used as the idempotency
+# key: if any of these already exist we skip the whole demo-data insert. They
+# MUST match the part_number values actually inserted below — otherwise the
+# guard never trips and a re-run raises a duplicate-key error on part_number.
+DEMO_PART_NUMBERS = ["BRK-2001", "FST-0007", "MOT-3300", "SUB-4400", "FIN-5000"]
+
 
 async def seed_admin_user() -> None:
     async with AsyncSessionLocal() as db:
@@ -84,8 +90,10 @@ async def seed_demo_domain_data() -> None:
     rather than presenting an empty shell. Idempotent: skipped entirely if
     any demo part already exists."""
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Part).where(Part.part_number == "ASM-1000"))
-        if result.scalar_one_or_none():
+        result = await db.execute(
+            select(Part.part_number).where(Part.part_number.in_(DEMO_PART_NUMBERS)).limit(1)
+        )
+        if result.first() is not None:
             logger.info("Demo domain data already present, skipping seed.")
             return
 
