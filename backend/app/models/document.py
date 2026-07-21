@@ -1,9 +1,9 @@
 import enum
 
-from sqlalchemy import BigInteger, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class DocumentType(str, enum.Enum):
@@ -28,7 +28,7 @@ class Document(TimestampMixin, Base):
     storage_path: Mapped[str] = mapped_column(String(500), nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
     size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    document_type: Mapped[DocumentType] = mapped_column(Enum(DocumentType, name="document_type"))
+    document_type: Mapped[DocumentType] = mapped_column(pg_enum(DocumentType, "document_type"))
     checksum_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     eco_id: Mapped[int | None] = mapped_column(ForeignKey("ecos.id"), nullable=True)
@@ -68,7 +68,7 @@ class SupplierNotification(TimestampMixin, Base):
     eco_id: Mapped[int] = mapped_column(ForeignKey("ecos.id"), nullable=False)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
     status: Mapped[SupplierNotificationStatus] = mapped_column(
-        Enum(SupplierNotificationStatus, name="supplier_notification_status"),
+        pg_enum(SupplierNotificationStatus, "supplier_notification_status"),
         default=SupplierNotificationStatus.PENDING,
     )
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

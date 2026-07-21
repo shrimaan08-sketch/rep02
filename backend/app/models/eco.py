@@ -1,9 +1,9 @@
 import enum
 
-from sqlalchemy import Enum, Float, ForeignKey, String, Text
+from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class ECOStatus(str, enum.Enum):
@@ -34,8 +34,8 @@ class ECO(TimestampMixin, Base):
     eco_number: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    eco_class: Mapped[ECOClass] = mapped_column(Enum(ECOClass, name="eco_class"), default=ECOClass.MAJOR)
-    status: Mapped[ECOStatus] = mapped_column(Enum(ECOStatus, name="eco_status"), default=ECOStatus.DRAFT, index=True)
+    eco_class: Mapped[ECOClass] = mapped_column(pg_enum(ECOClass, "eco_class"), default=ECOClass.MAJOR)
+    status: Mapped[ECOStatus] = mapped_column(pg_enum(ECOStatus, "eco_status"), default=ECOStatus.DRAFT, index=True)
 
     source_ecr_id: Mapped[int | None] = mapped_column(ForeignKey("ecrs.id"), nullable=True)
     initiated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
