@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, pg_enum
@@ -54,7 +54,7 @@ class ECR(TimestampMixin, Base):
 
     justification: Mapped[str | None] = mapped_column(Text, nullable=True)
     proposed_solution: Mapped[str | None] = mapped_column(Text, nullable=True)
-    estimated_cost_impact: Mapped[float | None] = mapped_column(Integer, nullable=True)
+    estimated_cost_impact: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI-generated plain-English summary
 

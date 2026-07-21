@@ -4,7 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.part import BOM, BOMItem
 from app.models.user import User
-from app.schemas.part import BOMCreate
+from app.schemas.part import BOMCreate, BOMItemCreate
 from app.services import audit_service
 
 
