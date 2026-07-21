@@ -1,9 +1,9 @@
 import enum
 
-from sqlalchemy import Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class ECRStatus(str, enum.Enum):
@@ -45,9 +45,9 @@ class ECR(TimestampMixin, Base):
     ecr_number: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    reason_code: Mapped[ECRReasonCode] = mapped_column(Enum(ECRReasonCode, name="ecr_reason_code"))
-    priority: Mapped[ECRPriority] = mapped_column(Enum(ECRPriority, name="ecr_priority"), default=ECRPriority.MEDIUM)
-    status: Mapped[ECRStatus] = mapped_column(Enum(ECRStatus, name="ecr_status"), default=ECRStatus.DRAFT, index=True)
+    reason_code: Mapped[ECRReasonCode] = mapped_column(pg_enum(ECRReasonCode, "ecr_reason_code"))
+    priority: Mapped[ECRPriority] = mapped_column(pg_enum(ECRPriority, "ecr_priority"), default=ECRPriority.MEDIUM)
+    status: Mapped[ECRStatus] = mapped_column(pg_enum(ECRStatus, "ecr_status"), default=ECRStatus.DRAFT, index=True)
 
     requested_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     affected_part_id: Mapped[int | None] = mapped_column(ForeignKey("parts.id"), nullable=True)

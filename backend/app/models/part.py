@@ -1,7 +1,6 @@
 import enum
 
 from sqlalchemy import (
-    Enum,
     Float,
     ForeignKey,
     Index,
@@ -12,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class PartType(str, enum.Enum):
@@ -40,8 +39,8 @@ class Part(TimestampMixin, Base):
     part_number: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    part_type: Mapped[PartType] = mapped_column(Enum(PartType, name="part_type"), default=PartType.COMPONENT)
-    status: Mapped[PartStatus] = mapped_column(Enum(PartStatus, name="part_status"), default=PartStatus.IN_DESIGN)
+    part_type: Mapped[PartType] = mapped_column(pg_enum(PartType, "part_type"), default=PartType.COMPONENT)
+    status: Mapped[PartStatus] = mapped_column(pg_enum(PartStatus, "part_status"), default=PartStatus.IN_DESIGN)
     # Intentionally NOT a schema-level ForeignKey: Part -> PartRevision and
     # PartRevision -> Part would form a circular FK dependency. Postgres can
     # resolve that via a deferred ALTER TABLE (use_alter=True), but SQLite

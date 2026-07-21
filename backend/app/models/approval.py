@@ -1,9 +1,9 @@
 import enum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 from app.models.user import UserRole
 
 
@@ -26,10 +26,10 @@ class ApprovalStep(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     eco_id: Mapped[int] = mapped_column(ForeignKey("ecos.id"), nullable=False)
     sequence: Mapped[int] = mapped_column(Integer, nullable=False)  # steps with same seq = parallel approval
-    required_role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="approval_required_role"))
+    required_role: Mapped[UserRole] = mapped_column(pg_enum(UserRole, "approval_required_role"))
     approver_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)  # assigned once active
     status: Mapped[ApprovalStepStatus] = mapped_column(
-        Enum(ApprovalStepStatus, name="approval_step_status"), default=ApprovalStepStatus.PENDING
+        pg_enum(ApprovalStepStatus, "approval_step_status"), default=ApprovalStepStatus.PENDING
     )
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
 
