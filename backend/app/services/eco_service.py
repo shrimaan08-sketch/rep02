@@ -153,6 +153,13 @@ async def submit_for_approval(db: AsyncSession, eco: ECO, actor: User) -> ECO:
         before_state={"status": before_status}, after_state={"status": eco.status.value},
     )
     await db.commit()
+    # `eco` was loaded before its approval chain existed, so its
+    # `approval_chain` collection is cached as empty in this session's identity
+    # map (expire_on_commit is False). Detach it so the reload below builds a
+    # fresh, fully-loaded instance with the freshly-built chain rather than
+    # returning the stale empty collection. (expunge is async-safe here;
+    # db.expire would trigger a sync lazy-load and raise MissingGreenlet.)
+    db.expunge(eco)
     return await get_eco(db, eco.id)
 
 

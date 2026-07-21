@@ -1,4 +1,5 @@
 import enum
+from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,7 +35,7 @@ class ApprovalStep(TimestampMixin, Base):
     comments: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # --- Digital signature capture ---
-    signed_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     signature_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)  # SHA-256 of signed payload
     signed_ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
 

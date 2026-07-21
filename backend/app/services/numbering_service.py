@@ -17,8 +17,14 @@ from app.models.eco import ECO
 
 
 async def _next_sequence(db: AsyncSession, redis_key: str, model, number_column) -> int:
+    client = get_redis()
+    if client is None:
+        # Redis not configured (e.g. Render free tier): derive the next number
+        # from the current row count. Not strictly gap-free under concurrency,
+        # but the unique constraint on the number column is the real guard.
+        result = await db.execute(select(func.count()).select_from(model))
+        return result.scalar_one() + 1
     try:
-        client = get_redis()
         value = await client.incr(redis_key)
         if value == 1:
             # first use this year: seed from DB in case Redis was flushed/rotated
