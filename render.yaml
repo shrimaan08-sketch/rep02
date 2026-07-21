@@ -1,0 +1,96 @@
+# ============================================================================
+# Render Blueprint for Revion
+# ----------------------------------------------------------------------------
+# Deploy the entire stack (backend API + managed PostgreSQL + frontend) in one
+# step. In the Render dashboard: New > Blueprint, point it at this repo, and
+# Render reads this file. DATABASE_URL is wired automatically from the managed
+# database below — no manual copy/paste — and SECRET_KEY is generated for you.
+#
+# The only values you may want to review after the first deploy:
+#   * BACKEND_CORS_ORIGINS  (backend) — must list the frontend's public URL
+#   * NEXT_PUBLIC_API_URL   (frontend) — must be the backend's public URL
+# These are pre-wired below using fromService references, so in most cases
+# they just work. See README "Deploying to Render" for the walkthrough.
+# ============================================================================
+
+databases:
+  - name: revion-db
+    databaseName: revion
+    user: revion_user
+    plan: free   # bump to "starter" or higher for production workloads
+
+services:
+  # ---- Backend API (Dockerized FastAPI) ----
+  - type: web
+    name: revion-api
+    runtime: docker
+    plan: free   # bump for production
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      # Managed Postgres connection string, injected by Render. The app
+      # normalizes this plain postgresql:// URL into async/sync driver forms.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: revion-db
+          property: connectionString
+      # Strong secret generated once by Render and kept stable across deploys.
+      - key: SECRET_KEY
+        generateValue: true
+      # Render injects PORT automatically; the entrypoint reads it.
+      - key: SEED_ON_STARTUP
+        value: "true"
+      - key: SEED_DEMO_ACCOUNTS
+        value: "false"
+      - key: SEED_ADMIN_EMAIL
+        value: admin@revion.app
+      # Set a real admin password in the dashboard after first deploy, or set
+      # it here as a secret. Left blank uses the seed default (change it!).
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      # Allow the frontend origin to call the API. Render's fromService only
+      # exposes the bare host (no scheme), and CORS requires the full origin
+      # with https://, so set this in the dashboard after the first deploy to:
+      #   https://revion-web.onrender.com   (your frontend's actual URL)
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      - key: UVICORN_WORKERS
+        value: "2"
+      # Optional integrations — fill in the dashboard if/when you want them.
+      - key: REDIS_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: EMAIL_ENABLED
+        value: "false"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
+  # ---- Frontend (Dockerized Next.js) ----
+  - type: web
+    name: revion-web
+    runtime: docker
+    plan: free   # bump for production
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      # BUILD-TIME variable: baked into the client bundle during docker build.
+      # Render's fromService exposes only the bare host (no scheme, no path),
+      # but this needs the full URL including /api/v1. Set it in the dashboard
+      # BEFORE the first frontend build (or redeploy after setting) to:
+      #   https://revion-api.onrender.com/api/v1   (your backend's actual URL)
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: "false"
